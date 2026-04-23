@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collect Numbers 1-10 Simultaneously (10x10 Grid)</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --success-hover: #059669;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        
+        .feature-info {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .info-pill {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        
+        .number-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+        
+        .number-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .number-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .number-canvas {
+            border: 1px solid var(--border);
+            cursor: crosshair;
+            background: white;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+        
+        .canvas-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        
+        .btn-clear-small {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-clear-small:hover {
+            background: #fee2e2;
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+        
+        .global-controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 32px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 48px;
+            position: sticky;
+            bottom: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+        
+        button {
+            font-family: inherit;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: var(--success-hover);
+        }
+
+        .btn-outline {
+            background: white;
+            border-color: var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+            border-color: #cbd5e1;
+        }
+
+        .btn-danger-outline {
+            background: white;
+            border-color: #fecaca;
+            color: var(--danger);
+        }
+
+        .btn-danger-outline:hover {
+            background: #fef2f2;
+        }
+        
+        .stats-section {
+            margin-top: 64px;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        .console {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8125rem;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 32px;
+            border: 1px solid #1e293b;
+        }
+
+        .console-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .global-controls {
+                flex-direction: column;
+                padding: 16px;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Digit Data Collector</h1>
+            <p class="subtitle">Handwritten number collection for machine learning datasets</p>
+        </header>
+        
+        <div class="feature-info">
+            <div class="info-pill">
+                <span>Grid Size: 10x10</span>
+            </div>
+            <div class="info-pill">
+                <span>Features: 100 per sample</span>
+            </div>
+            <div class="info-pill">
+                <span>Output: JSON / CSV</span>
+            </div>
+        </div>
+        
+        <div class="numbers-grid" id="numbersGrid"></div>
+        
+        <div class="global-controls">
+            <button onclick="clearAllCanvases()" class="btn-danger-outline">Clear All</button>
+            <button onclick="saveBatch()" class="btn-success">Save & Sync</button>
+            <button onclick="exportAllData()" class="btn-outline">Export JSON</button>
+            <button onclick="exportToCSV()" class="btn-primary">Export CSV</button>
+            <button onclick="clearHistory()" class="btn-danger-outline">Clear History</button>
+        </div>
+        
+        <div class="stats-section" id="stats">
+            <div class="stats-header">
+                <h3>Collection Statistics</h3>
+            </div>
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+        
+        <div class="console-wrapper">
+            <span class="console-label">System Logs</span>
+            <div class="console" id="output">
+                Ready to collect data...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Numbers 1 through 10
+        const GRID_SIZE = 10; // 10x10 grid for features (100 features total)
+        const CANVAS_SIZE = 140; // Canvas size for drawing
+        
+        // Storage
+        let batches = []; // Each batch contains 10 numbers (one per number)
+        
+        // Initialize
+        class NumberCanvas {
+            constructor(number, containerId) {
+                this.number = number;
+                this.drawing = false;
+                this.canvas = null;
+                this.ctx = null;
+                this.init(containerId);
+            }
+            
+            init(containerId) {
+                const container = document.getElementById(containerId);
+                
+                // Create card
+                const card = document.createElement('div');
+                card.className = 'number-card';
+                card.innerHTML = `
+                    <div class="number-header">Digit: ${this.number}</div>
+                    <canvas class="number-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"></canvas>
+                    <div class="canvas-controls">
+                        <button class="btn-clear-small" data-number="${this.number}">Reset</button>
+                    </div>
+                `;
+                container.appendChild(card);
+                
+                this.canvas = card.querySelector('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Setup drawing
+                this.setupCanvas();
+                this.setupEventListeners();
+                
+                // Setup clear button
+                card.querySelector('.btn-clear-small').addEventListener('click', () => this.clear());
+            }
+            
+            setupCanvas() {
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                this.ctx.strokeStyle = 'black';
+                this.ctx.lineWidth = 8;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+            }
+            
+            setupEventListeners() {
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.drawing = true;
+                    const pos = this.getMousePosition(e);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (!this.drawing) return;
+                    const pos = this.getMousePosition(e);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.drawing = false;
+                    this.ctx.beginPath();
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.drawing = false;
+                    this.ctx.beginPath();
+                });
+                
+                // Touch events for mobile
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.drawing = true;
+                    const pos = this.getTouchPosition(e);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.drawing) return;
+                    const pos = this.getTouchPosition(e);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
+                });
+                
+                this.canvas.addEventListener('touchend', () => {
+                    this.drawing = false;
+                    this.ctx.beginPath();
+                });
+            }
+            
+            getMousePosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+            
+            getTouchPosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                return {
+                    x: (touch.clientX - rect.left) * scaleX,
+                    y: (touch.clientY - rect.top) * scaleY
+                };
+            }
+            
+            clear() {
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            }
+            
+            extractFeatureMatrix() {
+                // Resize to 28x28 for consistent processing (standard MNIST size)
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 28;
+                tempCanvas.height = 28;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(this.canvas, 0, 0, 28, 28);
+                
+                const imgData = tempCtx.getImageData(0, 0, 28, 28);
+                const matrix = [];
+                const regionSize = 28 / GRID_SIZE; // 28/10 = 2.8 pixels per region
+                
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    matrix[i] = [];
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        let count = 0;
+                        const yStart = i * regionSize;
+                        const yEnd = (i + 1) * regionSize;
+                        const xStart = j * regionSize;
+                        const xEnd = (j + 1) * regionSize;
+                        
+                        for (let y = yStart; y < yEnd; y++) {
+                            for (let x = xStart; x < xEnd; x++) {
+                                const yIdx = Math.min(Math.floor(y), 27);
+                                const xIdx = Math.min(Math.floor(x), 27);
+                                const idx = (yIdx * 28 + xIdx) * 4;
+                                if (imgData.data[idx] < 128) count++;
+                            }
+                        }
+                        matrix[i][j] = count;
+                    }
+                }
+                return matrix;
+            }
+            
+            hasDrawing() {
+                // Check if canvas has any black pixels
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 28;
+                tempCanvas.height = 28;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(this.canvas, 0, 0, 28, 28);
+                const imgData = tempCtx.getImageData(0, 0, 28, 28);
+                
+                for (let i = 0; i < imgData.data.length; i += 4) {
+                    if (imgData.data[i] < 128) return true;
+                }
+                return false;
+            }
+            
+            getData() {
+                const matrix = this.extractFeatureMatrix();
+                const vector = matrix.flat(); // Flatten 10x10 to 100-element vector
+                
+                return {
+                    label: this.number,
+                    gridSize: GRID_SIZE,
+                    matrix: matrix,
+                    vector: vector,
+                    totalPixels: vector.reduce((a, b) => a + b, 0)
+                };
+            }
+        }
+        
+        // Main application
+        class MultiNumberCollector {
+            constructor() {
+                this.numberCanvases = {};
+                this.batches = [];
+                this.loadFromStorage();
+                this.init();
+            }
+            
+            init() {
+                const gridContainer = document.getElementById('numbersGrid');
+                gridContainer.innerHTML = '';
+                
+                NUMBERS.forEach(number => {
+                    const containerId = `canvas-container-${number}`;
+                    const container = document.createElement('div');
+                    container.id = containerId;
+                    gridContainer.appendChild(container);
+                    this.numberCanvases[number] = new NumberCanvas(number, containerId);
+                });
+                
+                this.updateStats();
+            }
+            
+            async saveBatch() {
+                const batchData = {};
+                let allDrawn = true;
+                const missingNumbers = [];
+                
+                // Check if all numbers are drawn
+                for (let number of NUMBERS) {
+                    const canvas = this.numberCanvases[number];
+                    const hasDrawing = canvas.hasDrawing();
+                    
+                    if (!hasDrawing) {
+                        allDrawn = false;
+                        missingNumbers.push(number);
+                    } else {
+                        batchData[number] = canvas.getData();
+                    }
+                }
+                
+                if (!allDrawn) {
+                    this.log(`Warning: Missing drawings for digits: ${missingNumbers.join(', ')}.`, 'warning');
+                    return;
+                }
+                
+                // Process batch into a flat array for server/export
+                const timestamp = new Date().toISOString();
+                const batchId = this.batches.length;
+                const samples = [];
+                
+                for (let number of NUMBERS) {
+                    const data = batchData[number];
+                    const sample = {
+                        batch_id: batchId,
+                        timestamp: timestamp,
+                        label: number,
+                        gridSize: data.gridSize,
+                        totalPixels: data.totalPixels
+                    };
+                    data.vector.forEach((val, idx) => {
+                        sample[`feature_${idx}`] = val;
+                    });
+                    samples.push(sample);
+                }
+
+                // Save batch locally
+                const batch = {
+                    id: batchId,
+                    timestamp: timestamp,
+                    numbers: batchData,
+                    metadata: {
+                        gridSize: GRID_SIZE,
+                        numNumbers: NUMBERS.length,
+                        numbersRange: [1, 10],
+                        featuresPerSample: GRID_SIZE * GRID_SIZE
+                    }
+                };
+                
+                this.batches.push(batch);
+                this.saveToStorage();
+                
+                // Attempt to sync with server
+                await this.uploadToServer(samples);
+                
+                // Clear all canvases for next batch
+                this.clearAllCanvases();
+                
+                this.log(`Success: Batch ${batch.id + 1} saved locally.`, 'success');
+                this.updateStats();
+                
+                // Show preview of features
+                this.showBatchPreview(batch);
+            }
+
+            async uploadToServer(samples) {
+                try {
+                    const response = await fetch('/api/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(samples)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.log(`Server Sync: ${result.message}`, 'success');
+                    } else {
+                        const error = await response.json();
+                        this.log(`Server Error: ${error.error || 'Connection failed'}`, 'error');
+                    }
+                } catch (err) {
+                    this.log('Server Sync: Backend offline. Data saved locally only.', 'warning');
+                    console.error('Upload failed:', err);
+                }
+            }
+            
+            clearAllCanvases() {
+                for (let number of NUMBERS) {
+                    this.numberCanvases[number].clear();
+                }
+                this.log('Canvases cleared. Ready for next batch.', 'info');
+            }
+            
+            getFeatureMatrixAsDataFrame() {
+                const rows = [];
+                
+                for (let batch of this.batches) {
+                    for (let number of NUMBERS) {
+                        const numberData = batch.numbers[number];
+                        if (numberData) {
+                            const row = {
+                                batch_id: batch.id,
+                                timestamp: batch.timestamp,
+                                label: number,
+                                gridSize: numberData.gridSize,
+                                totalPixels: numberData.totalPixels
+                            };
+                            
+                            // Add all 100 feature values (feature_0 to feature_99)
+                            numberData.vector.forEach((val, idx) => {
+                                row[`feature_${idx}`] = val;
+                            });
+                            
+                            rows.push(row);
+                        }
+                    }
+                }
+                
+                return rows;
+            }
+            
+            exportToJSON() {
+                const data = {
+                    totalBatches: this.batches.length,
+                    totalSamples: this.batches.length * NUMBERS.length,
+                    gridSize: GRID_SIZE,
+                    featuresPerSample: GRID_SIZE * GRID_SIZE,
+                    numbers: NUMBERS,
+                    batches: this.batches
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `digit_data_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.log(`Exported ${this.batches.length} batches to JSON.`, 'success');
+            }
+            
+            exportToCSV() {
+                const rows = this.getFeatureMatrixAsDataFrame();
+                
+                if (rows.length === 0) {
+                    this.log('No data to export.', 'warning');
+                    return;
+                }
+                
+                // Get all column names
+                const columns = Object.keys(rows[0]);
+                const csvRows = [columns.join(',')];
+                
+                for (const row of rows) {
+                    const values = columns.map(col => {
+                        const val = row[col];
+                        if (typeof val === 'string' && val.includes(',')) {
+                            return `"${val}"`;
+                        }
+                        return val;
+                    });
+                    csvRows.push(values.join(','));
+                }
+                
+                const csv = csvRows.join('\n');
+                const blob = new Blob([csv], {type: 'text/csv'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `digit_data_${Date.now()}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.log(`Exported ${rows.length} samples to CSV.`, 'success');
+            }
+            
+            updateStats() {
+                const statsGrid = document.getElementById('statsGrid');
+                const totalSamples = this.batches.length * NUMBERS.length;
+                
+                // Count samples per number
+                const numberCounts = {};
+                NUMBERS.forEach(n => numberCounts[n] = 0);
+                
+                for (let batch of this.batches) {
+                    for (let number of NUMBERS) {
+                        if (batch.numbers[number]) {
+                            numberCounts[number]++;
+                        }
+                    }
+                }
+                
+                let statsHtml = '';
+                for (let number of NUMBERS) {
+                    statsHtml += `
+                        <div class="stat-item">
+                            <div class="stat-number">${numberCounts[number]}</div>
+                            <div class="stat-label">Digit ${number}</div>
+                        </div>
+                    `;
+                }
+                
+                statsGrid.innerHTML = statsHtml;
+                
+                // Update summary (simplified for new UI)
+                const summaryInfo = `
+                    <div style="display: flex; gap: 24px; margin-bottom: 24px; font-size: 0.875rem; color: var(--text-muted);">
+                        <span><strong>Total Batches:</strong> ${this.batches.length}</span>
+                        <span><strong>Total Samples:</strong> ${totalSamples}</span>
+                    </div>
+                `;
+                
+                const statsHeader = document.querySelector('.stats-header');
+                if (statsHeader) {
+                    // Remove existing summary if any
+                    const existingSummary = statsHeader.querySelector('.summary-info');
+                    if (existingSummary) existingSummary.remove();
+                    
+                    const summaryDiv = document.createElement('div');
+                    summaryDiv.className = 'summary-info';
+                    summaryDiv.innerHTML = summaryInfo;
+                    statsHeader.appendChild(summaryDiv);
+                }
+            }
+            
+            showBatchPreview(batch) {
+                const preview = document.createElement('div');
+                preview.style.background = '#1e293b';
+                preview.style.padding = '12px';
+                preview.style.marginTop = '12px';
+                preview.style.borderRadius = '8px';
+                preview.style.fontSize = '0.75rem';
+                preview.style.color = '#94a3b8';
+                preview.style.border = '1px solid #334155';
+                
+                let previewHtml = `<strong style="color: #f1f5f9; display: block; margin-bottom: 4px;">Batch ${batch.id + 1} Saved</strong>`;
+                for (let number of NUMBERS.slice(0, 3)) {
+                    const data = batch.numbers[number];
+                    const featureSample = data.vector.slice(0, 5);
+                    previewHtml += `Digit ${number}: ${data.totalPixels} px | Features: [${featureSample.join(', ')}...]<br>`;
+                }
+                
+                preview.innerHTML = previewHtml;
+                document.getElementById('output').appendChild(preview);
+                
+                const outputDiv = document.getElementById('output');
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+            
+            log(message, type = 'info') {
+                const outputDiv = document.getElementById('output');
+                const logEntry = document.createElement('div');
+                
+                const colors = {
+                    success: '#10b981',
+                    error: '#ef4444',
+                    warning: '#f59e0b',
+                    info: '#3b82f6'
+                };
+                
+                logEntry.style.color = colors[type] || colors.info;
+                logEntry.style.marginTop = '4px';
+                logEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+                
+                outputDiv.appendChild(logEntry);
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+                
+                while (outputDiv.children.length > 50) {
+                    outputDiv.removeChild(outputDiv.children[1]);
+                }
+            }
+            
+            saveToStorage() {
+                localStorage.setItem('digit_data_collector_v2', JSON.stringify(this.batches));
+            }
+            
+            loadFromStorage() {
+                const stored = localStorage.getItem('digit_data_collector_v2');
+                if (stored) {
+                    this.batches = JSON.parse(stored);
+                    this.log(`Loaded ${this.batches.length} batches from storage.`, 'info');
+                }
+            }
+
+            clearHistory() {
+                if (confirm('Are you sure you want to delete all locally saved batches? This cannot be undone.')) {
+                    this.batches = [];
+                    localStorage.removeItem('digit_data_collector_v2');
+                    this.updateStats();
+                    this.log('Local history cleared successfully.', 'success');
+                }
+            }
+        }
+        
+        // Initialize the application
+        const collector = new MultiNumberCollector();
+        
+        // Global functions for buttons
+        function clearAllCanvases() {
+            collector.clearAllCanvases();
+        }
+        
+        function saveBatch() {
+            collector.saveBatch();
+        }
+        
+        function exportAllData() {
+            collector.exportToJSON();
+        }
+        
+        function exportToCSV() {
+            collector.exportToCSV();
+        }
+
+        function clearHistory() {
+            collector.clearHistory();
+        }
+        
+        // Keyboard shortcut: Ctrl+Enter to save batch
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                saveBatch();
+            }
+        });
+        
+        // Log instructions
+        console.log(`Multi-number collector initialized with ${GRID_SIZE}x${GRID_SIZE} grid. Draw numbers 1-10 and save batches!`);
+    </script>
+</body>
+</html>
