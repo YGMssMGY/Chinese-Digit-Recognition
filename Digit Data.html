@@ -137,6 +137,24 @@
             color: var(--danger);
             border-color: #fecaca;
         }
+
+        .btn-verify-small {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-verify-small:hover {
+            background: #e0f2fe;
+            color: var(--primary);
+            border-color: #bae6fd;
+        }
         
         .global-controls {
             display: flex;
@@ -311,6 +329,34 @@
             </div>
             <div class="stats-grid" id="statsGrid"></div>
         </div>
+
+        <div class="stats-section" id="history">
+            <div class="stats-header">
+                <h3>Manage Saved Batches</h3>
+                <div class="summary-info" id="historyInfo">
+                    <span>No batches selected for review</span>
+                </div>
+            </div>
+            
+            <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <label for="batchIndex" style="font-size: 0.875rem; font-weight: 600; color: var(--text-muted);">View Batch #:</label>
+                    <input type="number" id="batchIndex" min="1" value="1" oninput="collector.viewBatchFromHistory(this.value)" 
+                           style="width: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                    <span id="batchCountDisplay" style="font-size: 0.875rem; color: var(--text-muted);"></span>
+                    
+                    <div style="flex-grow: 1;"></div>
+                    
+                    <button onclick="collector.deleteBatchFromHistory()" class="btn-danger-outline" style="padding: 8px 16px; font-size: 0.8125rem;">
+                        Delete This Batch
+                    </button>
+                </div>
+                
+                <div id="historyPreviewGrid" class="numbers-grid" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px;">
+                    <!-- Preview canvases will be injected here -->
+                </div>
+            </div>
+        </div>
         
         <div class="console-wrapper">
             <span class="console-label">System Logs</span>
@@ -350,6 +396,7 @@
                     <canvas class="number-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"></canvas>
                     <div class="canvas-controls">
                         <button class="btn-clear-small" data-number="${this.number}">Reset</button>
+                        <button class="btn-verify-small" style="margin-left: 8px;">Verify</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -361,8 +408,9 @@
                 this.setupCanvas();
                 this.setupEventListeners();
                 
-                // Setup clear button
+                // Setup buttons
                 card.querySelector('.btn-clear-small').addEventListener('click', () => this.clear());
+                card.querySelector('.btn-verify-small').addEventListener('click', () => this.toggleVerification());
             }
             
             setupCanvas() {
@@ -454,19 +502,62 @@
             clear() {
                 this.ctx.fillStyle = 'white';
                 this.ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                if (this.verificationCanvas) {
+                    this.verificationCanvas.style.display = 'none';
+                    this.canvas.style.display = 'block';
+                }
+            }
+
+            // Theme-modified: Verification feature from human-bot
+            toggleVerification() {
+                if (!this.verificationCanvas) {
+                    this.verificationCanvas = document.createElement('canvas');
+                    this.verificationCanvas.width = CANVAS_SIZE;
+                    this.verificationCanvas.height = CANVAS_SIZE;
+                    this.verificationCanvas.className = 'number-canvas';
+                    this.verificationCanvas.style.display = 'none';
+                    this.canvas.parentNode.insertBefore(this.verificationCanvas, this.canvas.nextSibling);
+                }
+
+                if (this.verificationCanvas.style.display === 'none') {
+                    const data = this.getData();
+                    const vCtx = this.verificationCanvas.getContext('2d');
+                    const cellSize = CANVAS_SIZE / GRID_SIZE;
+                    
+                    vCtx.fillStyle = 'white';
+                    vCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    
+                    // Render the feature grid (10x10)
+                    for (let i = 0; i < GRID_SIZE; i++) {
+                        for (let j = 0; j < GRID_SIZE; j++) {
+                            const val = data.matrix[i][j];
+                            if (val > 0) {
+                                // Use Chinese-themed color (Deep Red) for verification
+                                vCtx.fillStyle = `rgba(185, 28, 28, ${val / 10})`; 
+                                vCtx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                            }
+                        }
+                    }
+                    
+                    this.canvas.style.display = 'none';
+                    this.verificationCanvas.style.display = 'block';
+                } else {
+                    this.verificationCanvas.style.display = 'none';
+                    this.canvas.style.display = 'block';
+                }
             }
             
             extractFeatureMatrix() {
                 // Resize to 28x28 for consistent processing (standard MNIST size)
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 28;
-                tempCanvas.height = 28;
+                tempCanvas.width = 100;
+                tempCanvas.height = 100;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(this.canvas, 0, 0, 28, 28);
+                tempCtx.drawImage(this.canvas, 0, 0, 100, 100);
                 
-                const imgData = tempCtx.getImageData(0, 0, 28, 28);
+                const imgData = tempCtx.getImageData(0, 0, 100, 100);
                 const matrix = [];
-                const regionSize = 28 / GRID_SIZE; // 28/10 = 2.8 pixels per region
+                const regionSize = 100 / GRID_SIZE; // 28/10 = 2.8 pixels per region
                 
                 for (let i = 0; i < GRID_SIZE; i++) {
                     matrix[i] = [];
@@ -479,9 +570,9 @@
                         
                         for (let y = yStart; y < yEnd; y++) {
                             for (let x = xStart; x < xEnd; x++) {
-                                const yIdx = Math.min(Math.floor(y), 27);
-                                const xIdx = Math.min(Math.floor(x), 27);
-                                const idx = (yIdx * 28 + xIdx) * 4;
+                                const yIdx = Math.min(Math.floor(y), 99);
+                                const xIdx = Math.min(Math.floor(x), 99);
+                                const idx = (yIdx * 100 + xIdx) * 4;
                                 if (imgData.data[idx] < 128) count++;
                             }
                         }
@@ -494,11 +585,11 @@
             hasDrawing() {
                 // Check if canvas has any black pixels
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 28;
-                tempCanvas.height = 28;
+                tempCanvas.width = 100;
+                tempCanvas.height = 100;
                 const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(this.canvas, 0, 0, 28, 28);
-                const imgData = tempCtx.getImageData(0, 0, 28, 28);
+                tempCtx.drawImage(this.canvas, 0, 0, 100, 100);
+                const imgData = tempCtx.getImageData(0, 0, 100, 100);
                 
                 for (let i = 0; i < imgData.data.length; i += 4) {
                     if (imgData.data[i] < 128) return true;
@@ -542,6 +633,9 @@
                 });
                 
                 this.updateStats();
+                if (this.batches.length > 0) {
+                    this.viewBatchFromHistory(1);
+                }
             }
             
             async saveBatch() {
@@ -611,6 +705,10 @@
                 
                 this.log(`Success: Batch ${batch.id + 1} saved locally.`, 'success');
                 this.updateStats();
+                
+                // Set history view to the latest batch
+                document.getElementById('batchIndex').value = this.batches.length;
+                this.viewBatchFromHistory(this.batches.length);
                 
                 // Show preview of features
                 this.showBatchPreview(batch);
@@ -758,6 +856,12 @@
                 
                 statsGrid.innerHTML = statsHtml;
                 
+                // Update history display info
+                document.getElementById('batchCountDisplay').innerText = `(Total: ${this.batches.length} batches)`;
+                const batchInput = document.getElementById('batchIndex');
+                batchInput.max = this.batches.length;
+                if (this.batches.length > 0 && batchInput.value == 0) batchInput.value = 1;
+
                 // Update summary (simplified for new UI)
                 const summaryInfo = `
                     <div style="display: flex; gap: 24px; margin-bottom: 24px; font-size: 0.875rem; color: var(--text-muted);">
@@ -770,12 +874,87 @@
                 if (statsHeader) {
                     // Remove existing summary if any
                     const existingSummary = statsHeader.querySelector('.summary-info');
-                    if (existingSummary) existingSummary.remove();
+                    if (existingSummary && existingSummary.id !== 'historyInfo') existingSummary.remove();
                     
                     const summaryDiv = document.createElement('div');
                     summaryDiv.className = 'summary-info';
                     summaryDiv.innerHTML = summaryInfo;
                     statsHeader.appendChild(summaryDiv);
+                }
+            }
+
+            viewBatchFromHistory(index) {
+                const idx = parseInt(index) - 1;
+                const container = document.getElementById('historyPreviewGrid');
+                const info = document.getElementById('historyInfo');
+                
+                if (idx < 0 || idx >= this.batches.length) {
+                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.875rem; grid-column: 1/-1;">No data available at this index.</p>';
+                    info.innerHTML = '<span>Invalid selection</span>';
+                    return;
+                }
+
+                const batch = this.batches[idx];
+                info.innerHTML = `<span>Batch ${idx + 1} collected at: ${new Date(batch.timestamp).toLocaleString()}</span>`;
+                container.innerHTML = '';
+
+                NUMBERS.forEach(number => {
+                    const data = batch.numbers[number];
+                    if (!data) return;
+
+                    const previewCard = document.createElement('div');
+                    previewCard.style.cssText = 'background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center;';
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 80;
+                    canvas.height = 80;
+                    canvas.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 0 auto 4px auto;';
+                    
+                    previewCard.innerHTML = `<div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 4px;">Digit ${number}</div>`;
+                    previewCard.insertBefore(canvas, previewCard.firstChild);
+                    container.appendChild(previewCard);
+
+                    // Render features
+                    const ctx = canvas.getContext('2d');
+                    const cellSize = 80 / GRID_SIZE;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, 80, 80);
+                    
+                    for (let i = 0; i < GRID_SIZE; i++) {
+                        for (let j = 0; j < GRID_SIZE; j++) {
+                            const val = data.matrix ? data.matrix[i][j] : data.vector[i * GRID_SIZE + j];
+                            if (val > 0) {
+                                ctx.fillStyle = `rgba(185, 28, 28, ${val / 10})`; 
+                                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                            }
+                        }
+                    }
+                });
+            }
+
+            deleteBatchFromHistory() {
+                const input = document.getElementById('batchIndex');
+                const idx = parseInt(input.value) - 1;
+
+                if (idx < 0 || idx >= this.batches.length) {
+                    alert('Please select a valid batch to delete.');
+                    return;
+                }
+
+                if (confirm(`Are you sure you want to delete Batch #${idx + 1}? This cannot be undone.`)) {
+                    this.batches.splice(idx, 1);
+                    this.saveToStorage();
+                    this.updateStats();
+                    
+                    // Adjust input value if needed
+                    if (this.batches.length === 0) {
+                        input.value = 0;
+                    } else if (idx >= this.batches.length) {
+                        input.value = this.batches.length;
+                    }
+                    
+                    this.viewBatchFromHistory(input.value);
+                    this.log(`Batch ${idx + 1} deleted.`, 'warning');
                 }
             }
             
@@ -827,25 +1006,89 @@
             }
             
             saveToStorage() {
-                localStorage.setItem('digit_data_collector_v2', JSON.stringify(this.batches));
+                // Compress data before saving to localStorage to save space (from human-bot)
+                const dataToStore = this.batches.map(batch => {
+                    const compressedBatch = { ...batch, numbers: {} };
+                    for (let n in batch.numbers) {
+                        const numData = batch.numbers[n];
+                        compressedBatch.numbers[n] = {
+                            ...numData,
+                            vector: compress0(numData.vector)
+                        };
+                    }
+                    return compressedBatch;
+                });
+                localStorage.setItem('digit_data_collector_v3', JSON.stringify(dataToStore));
             }
             
             loadFromStorage() {
-                const stored = localStorage.getItem('digit_data_collector_v2');
+                const stored = localStorage.getItem('digit_data_collector_v3');
                 if (stored) {
-                    this.batches = JSON.parse(stored);
-                    this.log(`Loaded ${this.batches.length} batches from storage.`, 'info');
+                    const compressedBatches = JSON.parse(stored);
+                    this.batches = compressedBatches.map(batch => {
+                        const decompressedBatch = { ...batch, numbers: {} };
+                        for (let n in batch.numbers) {
+                            const numData = batch.numbers[n];
+                            decompressedBatch.numbers[n] = {
+                                ...numData,
+                                vector: Array.from(depress0(numData.vector))
+                            };
+                        }
+                        return decompressedBatch;
+                    });
+                    this.log(`Loaded ${this.batches.length} batches from storage (decompressed).`, 'info');
                 }
             }
 
             clearHistory() {
                 if (confirm('Are you sure you want to delete all locally saved batches? This cannot be undone.')) {
                     this.batches = [];
-                    localStorage.removeItem('digit_data_collector_v2');
+                    localStorage.removeItem('digit_data_collector_v3');
                     this.updateStats();
                     this.log('Local history cleared successfully.', 'success');
                 }
             }
+        }
+
+        // --- Helper Functions from human-bot (Modified for Chinese Digit Theme) ---
+
+        /**
+         * Efficient zero-run compression for feature vectors.
+         * Fits the project's high-volume data collection needs.
+         */
+        function compress0(arr) {
+            let n = [];
+            let i0 = 0;
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] == 0) {
+                    i0++;
+                } else if (i0 > 0) {
+                    n.push(-i0);
+                    i0 = 0;
+                    n.push(arr[i]);
+                } else {
+                    n.push(arr[i]);
+                }
+            }
+            if (i0 > 0) n.push(-i0);
+            return n;
+        }
+
+        /**
+         * Decompresses zero-run encoded feature vectors.
+         */
+        function depress0(arr) {
+            let n = new Uint8Array(100); // 10x10 grid
+            let i0 = 0;
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] > 0) {
+                    n[i0] = arr[i];
+                    i0++;
+                } else {
+                    i0 -= arr[i];
+                }
+            }
+            return n;
         }
         
         // Initialize the application
