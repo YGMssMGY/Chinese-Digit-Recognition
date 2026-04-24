@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collect Numbers 1-10 Simultaneously (10x10 Grid)</title>
+    <title>Chinese Digit Collector - 28x28 MNIST Standard</title>
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
+            --primary: #b91c1c; /* Calligraphy Red */
+            --primary-hover: #991b1b;
             --danger: #ef4444;
             --danger-hover: #dc2626;
-            --success: #10b981;
-            --success-hover: #059669;
-            --bg: #f8fafc;
+            --success: #059669;
+            --success-hover: #047857;
+            --bg: #fdfcf7; /* Slightly aged paper color */
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
@@ -26,7 +26,7 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            font-family: "Kaiti", "STKaiti", -apple-system, BlinkMacSystemFont, 'Inter', serif;
             background-color: var(--bg);
             color: var(--text-main);
             line-height: 1.5;
@@ -44,10 +44,11 @@
         }
 
         h1 {
-            font-size: 2.25rem;
+            font-size: 2.5rem;
             font-weight: 700;
             letter-spacing: -0.025em;
             margin-bottom: 8px;
+            color: var(--primary);
         }
         
         .subtitle {
@@ -75,85 +76,69 @@
             gap: 8px;
         }
         
-        .numbers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 24px;
+        .collection-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             margin-bottom: 48px;
         }
-        
-        .number-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.2s ease;
+
+        .navigation-header {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            margin-bottom: 24px;
         }
-        
-        .number-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        
-        .number-header {
-            font-size: 0.875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            margin-bottom: 16px;
+
+        .digit-indicator {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            min-width: 120px;
             text-align: center;
         }
-        
-        .number-canvas {
-            border: 1px solid var(--border);
-            cursor: crosshair;
+
+        .btn-nav {
             background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.25rem;
+        }
+
+        .btn-nav:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: white;
+            padding: 10px;
+            border: 4px solid #334155;
+            border-radius: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .number-canvas {
             display: block;
-            margin: 0 auto;
-            border-radius: 8px;
+            cursor: crosshair;
+            background-color: white;
+            /* SVG Background set dynamically in JS for better centering */
         }
         
         .canvas-controls {
             display: flex;
             justify-content: center;
-            margin-top: 16px;
-        }
-        
-        .btn-clear-small {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-            padding: 4px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .btn-clear-small:hover {
-            background: #fee2e2;
-            color: var(--danger);
-            border-color: #fecaca;
-        }
-
-        .btn-verify-small {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-            padding: 4px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-verify-small:hover {
-            background: #e0f2fe;
-            color: var(--primary);
-            border-color: #bae6fd;
+            gap: 16px;
+            margin-top: 24px;
         }
         
         .global-controls {
@@ -207,7 +192,7 @@
         }
 
         .btn-outline:hover {
-            background: var(--bg);
+            background: #f8fafc;
             border-color: #cbd5e1;
         }
 
@@ -281,6 +266,21 @@
             margin-bottom: 12px;
             display: block;
         }
+
+        .progress-bar {
+            width: 420px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-bottom: 32px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
         
         @media (max-width: 768px) {
             .global-controls {
@@ -297,30 +297,46 @@
 <body>
     <div class="container">
         <header>
-            <h1>Digit Data Collector</h1>
-            <p class="subtitle">Handwritten number collection for machine learning datasets</p>
+            <h1>Chinese Digit Collector</h1>
+            <p class="subtitle">MNIST Standard High-Resolution Collection (28x28 Features)</p>
         </header>
         
         <div class="feature-info">
             <div class="info-pill">
-                <span>Grid Size: 10x10</span>
+                <span>Resolution: 28x28 (MNIST Std)</span>
             </div>
             <div class="info-pill">
-                <span>Features: 100 per sample</span>
+                <span>Features: 784 per sample</span>
             </div>
             <div class="info-pill">
-                <span>Output: JSON / CSV</span>
+                <span>Value Range: 0.0 - 1.0 (Normalized)</span>
             </div>
         </div>
         
-        <div class="numbers-grid" id="numbersGrid"></div>
+        <div class="collection-zone">
+            <div class="navigation-header">
+                <button onclick="collector.prevDigit()" class="btn-nav">←</button>
+                <div class="digit-indicator" id="digitIndicator">Digit: 1</div>
+                <button onclick="collector.nextDigit()" class="btn-nav">→</button>
+            </div>
+
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 10%;"></div>
+            </div>
+
+            <div class="canvas-wrapper" id="mainCanvasContainer"></div>
+
+            <div class="canvas-controls">
+                <button onclick="collector.clearCurrent()" class="btn-danger-outline">Clear Canvas</button>
+                <button onclick="collector.toggleVerify()" class="btn-outline">Verify Centering & Features</button>
+            </div>
+        </div>
         
         <div class="global-controls">
-            <button onclick="clearAllCanvases()" class="btn-danger-outline">Clear All</button>
-            <button onclick="saveBatch()" class="btn-success">Save & Sync</button>
+            <button onclick="saveBatch()" class="btn-success" style="padding: 12px 32px; font-size: 1.1rem;">Submit Full Batch (MNIST Optimized)</button>
+            <button onclick="exportToCSV()" class="btn-primary">Export CSV (784 Features)</button>
             <button onclick="exportAllData()" class="btn-outline">Export JSON</button>
-            <button onclick="exportToCSV()" class="btn-primary">Export CSV</button>
-            <button onclick="clearHistory()" class="btn-danger-outline">Clear History</button>
+            <button onclick="clearHistory()" class="btn-danger-outline">Reset History</button>
         </div>
         
         <div class="stats-section" id="stats">
@@ -352,7 +368,7 @@
                     </button>
                 </div>
                 
-                <div id="historyPreviewGrid" class="numbers-grid" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px;">
+                <div id="historyPreviewGrid" class="numbers-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
                     <!-- Preview canvases will be injected here -->
                 </div>
             </div>
@@ -368,12 +384,9 @@
 
     <script>
         // Configuration
-        const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Numbers 1 through 10
-        const GRID_SIZE = 10; // 10x10 grid for features (100 features total)
-        const CANVAS_SIZE = 140; // Canvas size for drawing
-        
-        // Storage
-        let batches = []; // Each batch contains 10 numbers (one per number)
+        const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const GRID_SIZE = 28; // MNIST Standard
+        const CANVAS_SIZE = 448; // 28 * 16 (Perfect alignment)
         
         // Initialize
         class NumberCanvas {
@@ -387,128 +400,77 @@
             
             init(containerId) {
                 const container = document.getElementById(containerId);
+                this.canvas = document.createElement('canvas');
+                this.canvas.className = 'number-canvas';
+                this.canvas.width = CANVAS_SIZE;
+                this.canvas.height = CANVAS_SIZE;
+                this.canvas.id = `canvas-${this.number}`;
+                this.canvas.style.display = 'none'; 
                 
-                // Create card
-                const card = document.createElement('div');
-                card.className = 'number-card';
-                card.innerHTML = `
-                    <div class="number-header">Digit: ${this.number}</div>
-                    <canvas class="number-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"></canvas>
-                    <div class="canvas-controls">
-                        <button class="btn-clear-small" data-number="${this.number}">Reset</button>
-                        <button class="btn-verify-small" style="margin-left: 8px;">Verify</button>
-                    </div>
-                `;
-                container.appendChild(card);
+                // Update SVG Background for 448px
+                this.canvas.style.backgroundImage = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='448' height='448'><path d='M0 0 L448 448 M448 0 L0 448 M224 0 L224 448 M0 224 L448 224' stroke='rgba(185, 28, 28, 0.12)' stroke-width='1' stroke-dasharray='5,5'/><rect x='0' y='0' width='448' height='448' fill='none' stroke='rgba(185, 28, 28, 0.2)' stroke-width='2'/></svg>")`;
+
+                container.appendChild(this.canvas);
                 
-                this.canvas = card.querySelector('canvas');
                 this.ctx = this.canvas.getContext('2d');
-                
-                // Setup drawing
                 this.setupCanvas();
                 this.setupEventListeners();
-                
-                // Setup buttons
-                card.querySelector('.btn-clear-small').addEventListener('click', () => this.clear());
-                card.querySelector('.btn-verify-small').addEventListener('click', () => this.toggleVerification());
             }
             
             setupCanvas() {
-                this.ctx.fillStyle = 'white';
-                this.ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                this.ctx.strokeStyle = 'black';
-                this.ctx.lineWidth = 8;
+                this.ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                this.ctx.strokeStyle = '#1e293b'; 
+                this.ctx.lineWidth = 22; // Optimized for 28x28 feature extraction
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
             }
             
             setupEventListeners() {
-                this.canvas.addEventListener('mousedown', (e) => {
-                    this.drawing = true;
-                    const pos = this.getMousePosition(e);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(pos.x, pos.y);
-                    this.ctx.lineTo(pos.x, pos.y);
-                    this.ctx.stroke();
-                });
-                
-                this.canvas.addEventListener('mousemove', (e) => {
-                    if (!this.drawing) return;
-                    const pos = this.getMousePosition(e);
-                    this.ctx.lineTo(pos.x, pos.y);
-                    this.ctx.stroke();
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(pos.x, pos.y);
-                });
-                
-                this.canvas.addEventListener('mouseup', () => {
-                    this.drawing = false;
-                    this.ctx.beginPath();
-                });
-                
-                this.canvas.addEventListener('mouseleave', () => {
-                    this.drawing = false;
-                    this.ctx.beginPath();
-                });
-                
-                // Touch events for mobile
-                this.canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.drawing = true;
-                    const pos = this.getTouchPosition(e);
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(pos.x, pos.y);
-                    this.ctx.lineTo(pos.x, pos.y);
-                    this.ctx.stroke();
-                });
-                
-                this.canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    if (!this.drawing) return;
-                    const pos = this.getTouchPosition(e);
-                    this.ctx.lineTo(pos.x, pos.y);
-                    this.ctx.stroke();
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(pos.x, pos.y);
-                });
-                
-                this.canvas.addEventListener('touchend', () => {
-                    this.drawing = false;
-                    this.ctx.beginPath();
-                });
-            }
-            
-            getMousePosition(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                const scaleX = this.canvas.width / rect.width;
-                const scaleY = this.canvas.height / rect.height;
-                return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
+                const getPos = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    return {
+                        x: (clientX - rect.left) * (CANVAS_SIZE / rect.width),
+                        y: (clientY - rect.top) * (CANVAS_SIZE / rect.height)
+                    };
                 };
-            }
-            
-            getTouchPosition(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                const scaleX = this.canvas.width / rect.width;
-                const scaleY = this.canvas.height / rect.height;
-                return {
-                    x: (touch.clientX - rect.left) * scaleX,
-                    y: (touch.clientY - rect.top) * scaleY
+
+                const start = (e) => {
+                    if (e.type === 'touchstart') e.preventDefault();
+                    this.drawing = true;
+                    const pos = getPos(e);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(pos.x, pos.y);
                 };
+
+                const move = (e) => {
+                    if (!this.drawing) return;
+                    if (e.type === 'touchmove') e.preventDefault();
+                    const pos = getPos(e);
+                    this.ctx.lineTo(pos.x, pos.y);
+                    this.ctx.stroke();
+                };
+
+                const stop = () => {
+                    this.drawing = false;
+                };
+
+                this.canvas.addEventListener('mousedown', start);
+                this.canvas.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', stop);
+                
+                this.canvas.addEventListener('touchstart', start, {passive: false});
+                this.canvas.addEventListener('touchmove', move, {passive: false});
+                this.canvas.addEventListener('touchend', stop);
             }
             
             clear() {
-                this.ctx.fillStyle = 'white';
-                this.ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                if (this.verificationCanvas) {
-                    this.verificationCanvas.style.display = 'none';
-                    this.canvas.style.display = 'block';
-                }
+                this.ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                if (this.verificationCanvas) this.verificationCanvas.style.display = 'none';
+                this.canvas.style.display = 'block';
             }
 
-            // Theme-modified: Verification feature from human-bot
             toggleVerification() {
                 if (!this.verificationCanvas) {
                     this.verificationCanvas = document.createElement('canvas');
@@ -524,16 +486,14 @@
                     const vCtx = this.verificationCanvas.getContext('2d');
                     const cellSize = CANVAS_SIZE / GRID_SIZE;
                     
-                    vCtx.fillStyle = 'white';
-                    vCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    vCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                     
-                    // Render the feature grid (10x10)
                     for (let i = 0; i < GRID_SIZE; i++) {
                         for (let j = 0; j < GRID_SIZE; j++) {
                             const val = data.matrix[i][j];
                             if (val > 0) {
-                                // Use Chinese-themed color (Deep Red) for verification
-                                vCtx.fillStyle = `rgba(185, 28, 28, ${val / 10})`; 
+                                // Normalized alpha (val is already 0.0 - 1.0)
+                                vCtx.fillStyle = `rgba(185, 28, 28, ${val})`; 
                                 vCtx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
                             }
                         }
@@ -548,582 +508,340 @@
             }
             
             extractFeatureMatrix() {
-                // Resize to 28x28 for consistent processing (standard MNIST size)
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 100;
-                tempCanvas.height = 100;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(this.canvas, 0, 0, 100, 100);
+                // 1. Find Bounding Box of the drawing
+                const imgData = this.ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                let minX = CANVAS_SIZE, minY = CANVAS_SIZE, maxX = 0, maxY = 0;
+                let foundAny = false;
+
+                for (let y = 0; y < CANVAS_SIZE; y++) {
+                    for (let x = 0; x < CANVAS_SIZE; x++) {
+                        const alpha = imgData.data[(y * CANVAS_SIZE + x) * 4 + 3];
+                        if (alpha > 50) {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                            foundAny = true;
+                        }
+                    }
+                }
+
+                if (!foundAny) return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+
+                // 2. Center and Scale into 28x28 grid
+                const cropWidth = maxX - minX + 1;
+                const cropHeight = maxY - minY + 1;
                 
-                const imgData = tempCtx.getImageData(0, 0, 100, 100);
+                // standard MNIST uses 20x20 centered in 28x28
+                const targetSize = 20; 
+                const scale = targetSize / Math.max(cropWidth, cropHeight);
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = GRID_SIZE;
+                tempCanvas.height = GRID_SIZE;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                const finalW = cropWidth * scale;
+                const finalH = cropHeight * scale;
+                const offsetX = (GRID_SIZE - finalW) / 2;
+                const offsetY = (GRID_SIZE - finalH) / 2;
+
+                tempCtx.drawImage(
+                    this.canvas, 
+                    minX, minY, cropWidth, cropHeight, // Source
+                    offsetX, offsetY, finalW, finalH    // Destination
+                );
+
+                const finalData = tempCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
                 const matrix = [];
-                const regionSize = 100 / GRID_SIZE; // 28/10 = 2.8 pixels per region
                 
                 for (let i = 0; i < GRID_SIZE; i++) {
                     matrix[i] = [];
                     for (let j = 0; j < GRID_SIZE; j++) {
-                        let count = 0;
-                        const yStart = i * regionSize;
-                        const yEnd = (i + 1) * regionSize;
-                        const xStart = j * regionSize;
-                        const xEnd = (j + 1) * regionSize;
-                        
-                        for (let y = yStart; y < yEnd; y++) {
-                            for (let x = xStart; x < xEnd; x++) {
-                                const yIdx = Math.min(Math.floor(y), 99);
-                                const xIdx = Math.min(Math.floor(x), 99);
-                                const idx = (yIdx * 100 + xIdx) * 4;
-                                if (imgData.data[idx] < 128) count++;
-                            }
-                        }
-                        matrix[i][j] = count;
+                        const alpha = finalData.data[(i * GRID_SIZE + j) * 4 + 3];
+                        matrix[i][j] = Math.round((alpha / 255) * 100) / 100;
                     }
                 }
                 return matrix;
             }
             
             hasDrawing() {
-                // Check if canvas has any black pixels
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 100;
-                tempCanvas.height = 100;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(this.canvas, 0, 0, 100, 100);
-                const imgData = tempCtx.getImageData(0, 0, 100, 100);
-                
-                for (let i = 0; i < imgData.data.length; i += 4) {
-                    if (imgData.data[i] < 128) return true;
+                const imgData = this.ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                for (let i = 3; i < imgData.data.length; i += 4) {
+                    if (imgData.data[i] > 50) return true;
                 }
                 return false;
             }
             
             getData() {
                 const matrix = this.extractFeatureMatrix();
-                const vector = matrix.flat(); // Flatten 10x10 to 100-element vector
-                
                 return {
                     label: this.number,
                     gridSize: GRID_SIZE,
                     matrix: matrix,
-                    vector: vector,
-                    totalPixels: vector.reduce((a, b) => a + b, 0)
+                    vector: matrix.flat(),
+                    totalWeight: matrix.flat().reduce((a, b) => a + b, 0)
                 };
             }
         }
         
-        // Main application
         class MultiNumberCollector {
             constructor() {
                 this.numberCanvases = {};
                 this.batches = [];
+                this.currentIdx = 0;
                 this.loadFromStorage();
                 this.init();
             }
             
             init() {
-                const gridContainer = document.getElementById('numbersGrid');
-                gridContainer.innerHTML = '';
-                
-                NUMBERS.forEach(number => {
-                    const containerId = `canvas-container-${number}`;
-                    const container = document.createElement('div');
-                    container.id = containerId;
-                    gridContainer.appendChild(container);
-                    this.numberCanvases[number] = new NumberCanvas(number, containerId);
+                const container = document.getElementById('mainCanvasContainer');
+                NUMBERS.forEach(n => {
+                    this.numberCanvases[n] = new NumberCanvas(n, 'mainCanvasContainer');
                 });
-                
+                this.updateView();
                 this.updateStats();
-                if (this.batches.length > 0) {
-                    this.viewBatchFromHistory(1);
-                }
+            }
+
+            updateView() {
+                const currentNumber = NUMBERS[this.currentIdx];
+                document.getElementById('digitIndicator').innerText = `Digit: ${currentNumber}`;
+                document.getElementById('progressFill').style.width = `${((this.currentIdx + 1) / NUMBERS.length) * 100}%`;
+                
+                Object.values(this.numberCanvases).forEach(c => {
+                    c.canvas.style.display = 'none';
+                    if (c.verificationCanvas) c.verificationCanvas.style.display = 'none';
+                });
+                this.numberCanvases[currentNumber].canvas.style.display = 'block';
+            }
+
+            nextDigit() {
+                this.currentIdx = (this.currentIdx + 1) % NUMBERS.length;
+                this.updateView();
+            }
+
+            prevDigit() {
+                this.currentIdx = (this.currentIdx - 1 + NUMBERS.length) % NUMBERS.length;
+                this.updateView();
+            }
+
+            clearCurrent() {
+                this.numberCanvases[NUMBERS[this.currentIdx]].clear();
+            }
+
+            toggleVerify() {
+                this.numberCanvases[NUMBERS[this.currentIdx]].toggleVerification();
             }
             
             async saveBatch() {
                 const batchData = {};
-                let allDrawn = true;
-                const missingNumbers = [];
+                let missing = [];
                 
-                // Check if all numbers are drawn
-                for (let number of NUMBERS) {
-                    const canvas = this.numberCanvases[number];
-                    const hasDrawing = canvas.hasDrawing();
-                    
-                    if (!hasDrawing) {
-                        allDrawn = false;
-                        missingNumbers.push(number);
+                NUMBERS.forEach(n => {
+                    if (this.numberCanvases[n].hasDrawing()) {
+                        batchData[n] = this.numberCanvases[n].getData();
                     } else {
-                        batchData[number] = canvas.getData();
+                        missing.push(n);
                     }
-                }
+                });
                 
-                if (!allDrawn) {
-                    this.log(`Warning: Missing drawings for digits: ${missingNumbers.join(', ')}.`, 'warning');
+                if (missing.length > 0) {
+                    this.log(`Wait! You haven't drawn digits: ${missing.join(', ')}`, 'warning');
                     return;
                 }
                 
-                // Process batch into a flat array for server/export
                 const timestamp = new Date().toISOString();
-                const batchId = this.batches.length;
+                const batchId = Date.now();
                 const samples = [];
                 
-                for (let number of NUMBERS) {
-                    const data = batchData[number];
+                NUMBERS.forEach(n => {
+                    const data = batchData[n];
                     const sample = {
                         batch_id: batchId,
                         timestamp: timestamp,
-                        label: number,
-                        gridSize: data.gridSize,
-                        totalPixels: data.totalPixels
-                    };
-                    data.vector.forEach((val, idx) => {
-                        sample[`feature_${idx}`] = val;
-                    });
-                    samples.push(sample);
-                }
-
-                // Save batch locally
-                const batch = {
-                    id: batchId,
-                    timestamp: timestamp,
-                    numbers: batchData,
-                    metadata: {
+                        label: n,
                         gridSize: GRID_SIZE,
-                        numNumbers: NUMBERS.length,
-                        numbersRange: [1, 10],
-                        featuresPerSample: GRID_SIZE * GRID_SIZE
-                    }
-                };
-                
+                        totalWeight: data.totalWeight
+                    };
+                    data.vector.forEach((v, i) => sample[`feature_${i}`] = v);
+                    samples.push(sample);
+                });
+
+                const batch = { id: batchId, timestamp, numbers: batchData };
                 this.batches.push(batch);
                 this.saveToStorage();
-                
-                // Attempt to sync with server
                 await this.uploadToServer(samples);
                 
-                // Clear all canvases for next batch
-                this.clearAllCanvases();
-                
-                this.log(`Success: Batch ${batch.id + 1} saved locally.`, 'success');
+                NUMBERS.forEach(n => this.numberCanvases[n].clear());
+                this.currentIdx = 0;
+                this.updateView();
                 this.updateStats();
-                
-                // Set history view to the latest batch
-                document.getElementById('batchIndex').value = this.batches.length;
-                this.viewBatchFromHistory(this.batches.length);
-                
-                // Show preview of features
-                this.showBatchPreview(batch);
+                this.log(`Success: Batch saved with 28x28 Normalization & Centering.`, 'success');
             }
 
             async uploadToServer(samples) {
                 try {
-                    const response = await fetch('/api/submit', {
+                    const res = await fetch('/api/submit', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(samples)
                     });
+                    if (res.ok) this.log('Server Sync: Success', 'success');
+                } catch (e) {
+                    this.log('Server Sync: Offline (Saved locally)', 'warning');
+                }
+            }
 
-                    if (response.ok) {
-                        const result = await response.json();
-                        this.log(`Server Sync: ${result.message}`, 'success');
-                    } else {
-                        const error = await response.json();
-                        this.log(`Server Error: ${error.error || 'Connection failed'}`, 'error');
-                    }
-                } catch (err) {
-                    this.log('Server Sync: Backend offline. Data saved locally only.', 'warning');
-                    console.error('Upload failed:', err);
-                }
-            }
-            
-            clearAllCanvases() {
-                for (let number of NUMBERS) {
-                    this.numberCanvases[number].clear();
-                }
-                this.log('Canvases cleared. Ready for next batch.', 'info');
-            }
-            
-            getFeatureMatrixAsDataFrame() {
-                const rows = [];
-                
-                for (let batch of this.batches) {
-                    for (let number of NUMBERS) {
-                        const numberData = batch.numbers[number];
-                        if (numberData) {
-                            const row = {
-                                batch_id: batch.id,
-                                timestamp: batch.timestamp,
-                                label: number,
-                                gridSize: numberData.gridSize,
-                                totalPixels: numberData.totalPixels
-                            };
-                            
-                            // Add all 100 feature values (feature_0 to feature_99)
-                            numberData.vector.forEach((val, idx) => {
-                                row[`feature_${idx}`] = val;
-                            });
-                            
-                            rows.push(row);
-                        }
-                    }
-                }
-                
-                return rows;
-            }
-            
-            exportToJSON() {
-                const data = {
-                    totalBatches: this.batches.length,
-                    totalSamples: this.batches.length * NUMBERS.length,
-                    gridSize: GRID_SIZE,
-                    featuresPerSample: GRID_SIZE * GRID_SIZE,
-                    numbers: NUMBERS,
-                    batches: this.batches
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `digit_data_${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                this.log(`Exported ${this.batches.length} batches to JSON.`, 'success');
-            }
-            
-            exportToCSV() {
-                const rows = this.getFeatureMatrixAsDataFrame();
-                
-                if (rows.length === 0) {
-                    this.log('No data to export.', 'warning');
-                    return;
-                }
-                
-                // Get all column names
-                const columns = Object.keys(rows[0]);
-                const csvRows = [columns.join(',')];
-                
-                for (const row of rows) {
-                    const values = columns.map(col => {
-                        const val = row[col];
-                        if (typeof val === 'string' && val.includes(',')) {
-                            return `"${val}"`;
-                        }
-                        return val;
-                    });
-                    csvRows.push(values.join(','));
-                }
-                
-                const csv = csvRows.join('\n');
-                const blob = new Blob([csv], {type: 'text/csv'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `digit_data_${Date.now()}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                this.log(`Exported ${rows.length} samples to CSV.`, 'success');
-            }
-            
             updateStats() {
                 const statsGrid = document.getElementById('statsGrid');
-                const totalSamples = this.batches.length * NUMBERS.length;
+                const counts = {};
+                NUMBERS.forEach(n => counts[n] = 0);
+                this.batches.forEach(b => NUMBERS.forEach(n => { if (b.numbers[n]) counts[n]++; }));
                 
-                // Count samples per number
-                const numberCounts = {};
-                NUMBERS.forEach(n => numberCounts[n] = 0);
-                
-                for (let batch of this.batches) {
-                    for (let number of NUMBERS) {
-                        if (batch.numbers[number]) {
-                            numberCounts[number]++;
-                        }
-                    }
-                }
-                
-                let statsHtml = '';
-                for (let number of NUMBERS) {
-                    statsHtml += `
-                        <div class="stat-item">
-                            <div class="stat-number">${numberCounts[number]}</div>
-                            <div class="stat-label">Digit ${number}</div>
-                        </div>
-                    `;
-                }
-                
-                statsGrid.innerHTML = statsHtml;
-                
-                // Update history display info
-                document.getElementById('batchCountDisplay').innerText = `(Total: ${this.batches.length} batches)`;
-                const batchInput = document.getElementById('batchIndex');
-                batchInput.max = this.batches.length;
-                if (this.batches.length > 0 && batchInput.value == 0) batchInput.value = 1;
-
-                // Update summary (simplified for new UI)
-                const summaryInfo = `
-                    <div style="display: flex; gap: 24px; margin-bottom: 24px; font-size: 0.875rem; color: var(--text-muted);">
-                        <span><strong>Total Batches:</strong> ${this.batches.length}</span>
-                        <span><strong>Total Samples:</strong> ${totalSamples}</span>
+                statsGrid.innerHTML = NUMBERS.map(n => `
+                    <div class="stat-item">
+                        <div class="stat-number">${counts[n]}</div>
+                        <div class="stat-label">Digit ${n}</div>
                     </div>
-                `;
+                `).join('');
                 
-                const statsHeader = document.querySelector('.stats-header');
-                if (statsHeader) {
-                    // Remove existing summary if any
-                    const existingSummary = statsHeader.querySelector('.summary-info');
-                    if (existingSummary && existingSummary.id !== 'historyInfo') existingSummary.remove();
-                    
-                    const summaryDiv = document.createElement('div');
-                    summaryDiv.className = 'summary-info';
-                    summaryDiv.innerHTML = summaryInfo;
-                    statsHeader.appendChild(summaryDiv);
-                }
+                document.getElementById('batchCountDisplay').innerText = `(${this.batches.length} total)`;
             }
 
             viewBatchFromHistory(index) {
                 const idx = parseInt(index) - 1;
                 const container = document.getElementById('historyPreviewGrid');
-                const info = document.getElementById('historyInfo');
-                
-                if (idx < 0 || idx >= this.batches.length) {
-                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.875rem; grid-column: 1/-1;">No data available at this index.</p>';
-                    info.innerHTML = '<span>Invalid selection</span>';
-                    return;
-                }
+                if (idx < 0 || idx >= this.batches.length) return;
 
                 const batch = this.batches[idx];
-                info.innerHTML = `<span>Batch ${idx + 1} collected at: ${new Date(batch.timestamp).toLocaleString()}</span>`;
                 container.innerHTML = '';
 
-                NUMBERS.forEach(number => {
-                    const data = batch.numbers[number];
-                    if (!data) return;
-
-                    const previewCard = document.createElement('div');
-                    previewCard.style.cssText = 'background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center;';
-                    
+                NUMBERS.forEach(n => {
+                    const data = batch.numbers[n];
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 4px; padding: 4px;';
                     const canvas = document.createElement('canvas');
-                    canvas.width = 80;
-                    canvas.height = 80;
-                    canvas.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 0 auto 4px auto;';
-                    
-                    previewCard.innerHTML = `<div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 4px;">Digit ${number}</div>`;
-                    previewCard.insertBefore(canvas, previewCard.firstChild);
-                    container.appendChild(previewCard);
+                    canvas.width = 60; canvas.height = 60;
+                    canvas.style.cssText = 'display:block; margin: 0 auto; background:#f8fafc;';
+                    card.innerHTML = `<div style="font-size:10px; text-align:center">Digit ${n}</div>`;
+                    card.insertBefore(canvas, card.firstChild);
+                    container.appendChild(card);
 
-                    // Render features
                     const ctx = canvas.getContext('2d');
-                    const cellSize = 80 / GRID_SIZE;
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, 80, 80);
-                    
-                    for (let i = 0; i < GRID_SIZE; i++) {
-                        for (let j = 0; j < GRID_SIZE; j++) {
-                            const val = data.matrix ? data.matrix[i][j] : data.vector[i * GRID_SIZE + j];
-                            if (val > 0) {
-                                ctx.fillStyle = `rgba(185, 28, 28, ${val / 10})`; 
-                                ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-                            }
+                    const cellSize = 60 / GRID_SIZE;
+                    data.vector.forEach((val, i) => {
+                        if (val > 0) {
+                            ctx.fillStyle = `rgba(185, 28, 28, ${val})`;
+                            ctx.fillRect((i % GRID_SIZE) * cellSize, Math.floor(i / GRID_SIZE) * cellSize, cellSize, cellSize);
                         }
-                    }
+                    });
                 });
+            }
+
+            saveToStorage() {
+                const compact = this.batches.map(b => ({
+                    ...b, 
+                    numbers: Object.fromEntries(Object.entries(b.numbers).map(([n, d]) => [n, {...d, vector: compress0(d.vector)}]))
+                }));
+                localStorage.setItem('digit_data_collector_v5', JSON.stringify(compact));
+            }
+
+            loadFromStorage() {
+                const stored = localStorage.getItem('digit_data_collector_v5');
+                if (stored) {
+                    this.batches = JSON.parse(stored).map(b => ({
+                        ...b,
+                        numbers: Object.fromEntries(Object.entries(b.numbers).map(([n, d]) => [n, {...d, vector: depress0(d.vector, GRID_SIZE * GRID_SIZE)}]))
+                    }));
+                }
             }
 
             deleteBatchFromHistory() {
-                const input = document.getElementById('batchIndex');
-                const idx = parseInt(input.value) - 1;
-
-                if (idx < 0 || idx >= this.batches.length) {
-                    alert('Please select a valid batch to delete.');
-                    return;
-                }
-
-                if (confirm(`Are you sure you want to delete Batch #${idx + 1}? This cannot be undone.`)) {
+                const idx = parseInt(document.getElementById('batchIndex').value) - 1;
+                if (idx >= 0 && confirm('Delete this batch?')) {
                     this.batches.splice(idx, 1);
                     this.saveToStorage();
                     this.updateStats();
-                    
-                    // Adjust input value if needed
-                    if (this.batches.length === 0) {
-                        input.value = 0;
-                    } else if (idx >= this.batches.length) {
-                        input.value = this.batches.length;
-                    }
-                    
-                    this.viewBatchFromHistory(input.value);
-                    this.log(`Batch ${idx + 1} deleted.`, 'warning');
-                }
-            }
-            
-            showBatchPreview(batch) {
-                const preview = document.createElement('div');
-                preview.style.background = '#1e293b';
-                preview.style.padding = '12px';
-                preview.style.marginTop = '12px';
-                preview.style.borderRadius = '8px';
-                preview.style.fontSize = '0.75rem';
-                preview.style.color = '#94a3b8';
-                preview.style.border = '1px solid #334155';
-                
-                let previewHtml = `<strong style="color: #f1f5f9; display: block; margin-bottom: 4px;">Batch ${batch.id + 1} Saved</strong>`;
-                for (let number of NUMBERS.slice(0, 3)) {
-                    const data = batch.numbers[number];
-                    const featureSample = data.vector.slice(0, 5);
-                    previewHtml += `Digit ${number}: ${data.totalPixels} px | Features: [${featureSample.join(', ')}...]<br>`;
-                }
-                
-                preview.innerHTML = previewHtml;
-                document.getElementById('output').appendChild(preview);
-                
-                const outputDiv = document.getElementById('output');
-                outputDiv.scrollTop = outputDiv.scrollHeight;
-            }
-            
-            log(message, type = 'info') {
-                const outputDiv = document.getElementById('output');
-                const logEntry = document.createElement('div');
-                
-                const colors = {
-                    success: '#10b981',
-                    error: '#ef4444',
-                    warning: '#f59e0b',
-                    info: '#3b82f6'
-                };
-                
-                logEntry.style.color = colors[type] || colors.info;
-                logEntry.style.marginTop = '4px';
-                logEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
-                
-                outputDiv.appendChild(logEntry);
-                outputDiv.scrollTop = outputDiv.scrollHeight;
-                
-                while (outputDiv.children.length > 50) {
-                    outputDiv.removeChild(outputDiv.children[1]);
-                }
-            }
-            
-            saveToStorage() {
-                // Compress data before saving to localStorage to save space (from human-bot)
-                const dataToStore = this.batches.map(batch => {
-                    const compressedBatch = { ...batch, numbers: {} };
-                    for (let n in batch.numbers) {
-                        const numData = batch.numbers[n];
-                        compressedBatch.numbers[n] = {
-                            ...numData,
-                            vector: compress0(numData.vector)
-                        };
-                    }
-                    return compressedBatch;
-                });
-                localStorage.setItem('digit_data_collector_v3', JSON.stringify(dataToStore));
-            }
-            
-            loadFromStorage() {
-                const stored = localStorage.getItem('digit_data_collector_v3');
-                if (stored) {
-                    const compressedBatches = JSON.parse(stored);
-                    this.batches = compressedBatches.map(batch => {
-                        const decompressedBatch = { ...batch, numbers: {} };
-                        for (let n in batch.numbers) {
-                            const numData = batch.numbers[n];
-                            decompressedBatch.numbers[n] = {
-                                ...numData,
-                                vector: Array.from(depress0(numData.vector))
-                            };
-                        }
-                        return decompressedBatch;
-                    });
-                    this.log(`Loaded ${this.batches.length} batches from storage (decompressed).`, 'info');
+                    this.log('Batch deleted.', 'warning');
                 }
             }
 
+            log(msg, type = 'info') {
+                const out = document.getElementById('output');
+                const div = document.createElement('div');
+                div.style.color = {success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6'}[type];
+                div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                out.appendChild(div);
+                out.scrollTop = out.scrollHeight;
+            }
+
+            exportToCSV() {
+                if (this.batches.length === 0) return;
+                const rows = [];
+                this.batches.forEach(b => {
+                    NUMBERS.forEach(n => {
+                        const d = b.numbers[n];
+                        const row = { batch_id: b.id, label: n, weight: d.totalWeight };
+                        d.vector.forEach((v, i) => row[`f${i}`] = v);
+                        rows.push(row);
+                    });
+                });
+                const header = Object.keys(rows[0]).join(',');
+                const csv = [header, ...rows.map(r => Object.values(r).join(','))].join('\n');
+                const blob = new Blob([csv], {type: 'text/csv'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `chinese_digits_mnist_${Date.now()}.csv`;
+                a.click();
+            }
+
+            exportToJSON() {
+                const blob = new Blob([JSON.stringify(this.batches)], {type: 'application/json'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `chinese_digits_mnist_${Date.now()}.json`;
+                a.click();
+            }
+
             clearHistory() {
-                if (confirm('Are you sure you want to delete all locally saved batches? This cannot be undone.')) {
+                if (confirm('Clear everything?')) {
                     this.batches = [];
-                    localStorage.removeItem('digit_data_collector_v3');
+                    localStorage.removeItem('digit_data_collector_v5');
                     this.updateStats();
-                    this.log('Local history cleared successfully.', 'success');
                 }
             }
         }
 
-        // --- Helper Functions from human-bot (Modified for Chinese Digit Theme) ---
-
-        /**
-         * Efficient zero-run compression for feature vectors.
-         * Fits the project's high-volume data collection needs.
-         */
         function compress0(arr) {
-            let n = [];
-            let i0 = 0;
-            for (let i = 0; i < arr.length; i++) {
-                if (arr[i] == 0) {
-                    i0++;
-                } else if (i0 > 0) {
-                    n.push(-i0);
-                    i0 = 0;
-                    n.push(arr[i]);
-                } else {
-                    n.push(arr[i]);
-                }
+            let n = [], i0 = 0;
+            for (let v of arr) {
+                if (v == 0) i0++;
+                else { if (i0 > 0) n.push(-i0); i0 = 0; n.push(v); }
             }
             if (i0 > 0) n.push(-i0);
             return n;
         }
 
-        /**
-         * Decompresses zero-run encoded feature vectors.
-         */
-        function depress0(arr) {
-            let n = new Uint8Array(100); // 10x10 grid
-            let i0 = 0;
-            for (let i = 0; i < arr.length; i++) {
-                if (arr[i] > 0) {
-                    n[i0] = arr[i];
-                    i0++;
-                } else {
-                    i0 -= arr[i];
-                }
+        function depress0(arr, size) {
+            let n = new Float32Array(size), i0 = 0;
+            for (let v of arr) {
+                if (v > 0) { n[i0] = v; i0++; }
+                else i0 -= v;
             }
-            return n;
+            return Array.from(n);
         }
         
-        // Initialize the application
         const collector = new MultiNumberCollector();
-        
-        // Global functions for buttons
-        function clearAllCanvases() {
-            collector.clearAllCanvases();
-        }
-        
-        function saveBatch() {
-            collector.saveBatch();
-        }
-        
-        function exportAllData() {
-            collector.exportToJSON();
-        }
-        
-        function exportToCSV() {
-            collector.exportToCSV();
-        }
+        function saveBatch() { collector.saveBatch(); }
+        function exportToCSV() { collector.exportToCSV(); }
+        function exportAllData() { collector.exportToJSON(); }
+        function clearHistory() { collector.clearHistory(); }
 
-        function clearHistory() {
-            collector.clearHistory();
-        }
-        
-        // Keyboard shortcut: Ctrl+Enter to save batch
         document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') {
-                saveBatch();
-            }
+            if (e.key === 'ArrowRight') collector.nextDigit();
+            if (e.key === 'ArrowLeft') collector.prevDigit();
+            if (e.ctrlKey && e.key === 'Enter') saveBatch();
         });
-        
-        // Log instructions
-        console.log(`Multi-number collector initialized with ${GRID_SIZE}x${GRID_SIZE} grid. Draw numbers 1-10 and save batches!`);
     </script>
 </body>
 </html>
