@@ -387,6 +387,17 @@
         const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         const GRID_SIZE = 60; // Upgraded Resolution
         const CANVAS_SIZE = 600; // 60 * 10 (Perfect alignment)
+
+        // Safe UUID generation (fallback for non-secure contexts)
+        function generateUUID() {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
         
         // Initialize
         class NumberCanvas {
@@ -662,7 +673,7 @@
                 NUMBERS.forEach(n => {
                     const data = batchData[n];
                     const sample = {
-                        sample_id: crypto.randomUUID(),
+                        sample_id: generateUUID(),
                         batch_id: batchId,
                         user_name: this.userName,
                         timestamp: timestamp,
@@ -676,7 +687,11 @@
 
                 const batch = { id: batchId, timestamp, userName: this.userName, numbers: batchData };
                 this.batches.push(batch);
-                this.saveToStorage();
+                try {
+                    this.saveToStorage();
+                } catch (e) {
+                    this.log('Local Storage full, but attempting server sync...', 'warning');
+                }
                 await this.uploadToServer(samples);
                 
                 NUMBERS.forEach(n => this.numberCanvases[n].clear());
@@ -791,7 +806,7 @@
                     NUMBERS.forEach(n => {
                         const d = b.numbers[n];
                         const row = { 
-                            sample_id: crypto.randomUUID(),
+                            sample_id: generateUUID(),
                             batch_id: b.id, 
                             user_name: b.userName || this.userName,
                             timestamp: b.timestamp,
