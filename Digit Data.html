@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chinese Digit Collector - 28x28 MNIST Standard</title>
+    <title>Chinese Digit Collector - 60x60 High-Resolution</title>
     <style>
         :root {
             --primary: #b91c1c; /* Calligraphy Red */
@@ -298,15 +298,15 @@
     <div class="container">
         <header>
             <h1>Chinese Digit Collector</h1>
-            <p class="subtitle">MNIST Standard High-Resolution Collection (28x28 Features)</p>
+            <p class="subtitle">Custom High-Resolution Collection (60x60 Features)</p>
         </header>
         
         <div class="feature-info">
             <div class="info-pill">
-                <span>Resolution: 28x28 (MNIST Std)</span>
+                <span>Resolution: 60x60 (High-Res)</span>
             </div>
             <div class="info-pill">
-                <span>Features: 784 per sample</span>
+                <span>Features: 3600 per sample</span>
             </div>
             <div class="info-pill">
                 <span>Value Range: 0.0 - 1.0 (Normalized)</span>
@@ -333,8 +333,8 @@
         </div>
         
         <div class="global-controls">
-            <button onclick="saveBatch()" class="btn-success" style="padding: 12px 32px; font-size: 1.1rem;">Submit Full Batch (MNIST Optimized)</button>
-            <button onclick="exportToCSV()" class="btn-primary">Export CSV (784 Features)</button>
+            <button onclick="saveBatch()" class="btn-success" style="padding: 12px 32px; font-size: 1.1rem;">Submit Full Batch (60x60 Optimized)</button>
+            <button onclick="exportToCSV()" class="btn-primary">Export CSV (3600 Features)</button>
             <button onclick="exportAllData()" class="btn-outline">Export JSON</button>
             <button onclick="clearHistory()" class="btn-danger-outline">Reset History</button>
         </div>
@@ -385,8 +385,8 @@
     <script>
         // Configuration
         const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        const GRID_SIZE = 28; // MNIST Standard
-        const CANVAS_SIZE = 448; // 28 * 16 (Perfect alignment)
+        const GRID_SIZE = 60; // Upgraded Resolution
+        const CANVAS_SIZE = 600; // 60 * 10 (Perfect alignment)
         
         // Initialize
         class NumberCanvas {
@@ -407,8 +407,8 @@
                 this.canvas.id = `canvas-${this.number}`;
                 this.canvas.style.display = 'none'; 
                 
-                // Update SVG Background for 448px
-                this.canvas.style.backgroundImage = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='448' height='448'><path d='M0 0 L448 448 M448 0 L0 448 M224 0 L224 448 M0 224 L448 224' stroke='rgba(185, 28, 28, 0.12)' stroke-width='1' stroke-dasharray='5,5'/><rect x='0' y='0' width='448' height='448' fill='none' stroke='rgba(185, 28, 28, 0.2)' stroke-width='2'/></svg>")`;
+                // Update SVG Background for 600px
+                this.canvas.style.backgroundImage = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><path d='M0 0 L600 600 M600 0 L0 600 M300 0 L300 600 M0 300 L600 300' stroke='rgba(185, 28, 28, 0.12)' stroke-width='1' stroke-dasharray='5,5'/><rect x='0' y='0' width='600' height='600' fill='none' stroke='rgba(185, 28, 28, 0.2)' stroke-width='2'/></svg>")`;
 
                 container.appendChild(this.canvas);
                 
@@ -420,7 +420,7 @@
             setupCanvas() {
                 this.ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                 this.ctx.strokeStyle = '#1e293b'; 
-                this.ctx.lineWidth = 22; // Optimized for 28x28 feature extraction
+                this.ctx.lineWidth = 30; // Optimized for 60x60 feature extraction
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
             }
@@ -528,12 +528,12 @@
 
                 if (!foundAny) return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
 
-                // 2. Center and Scale into 28x28 grid
+                // 2. Center and Scale into 60x60 grid
                 const cropWidth = maxX - minX + 1;
                 const cropHeight = maxY - minY + 1;
                 
-                // standard MNIST uses 20x20 centered in 28x28
-                const targetSize = 20; 
+                // standard MNIST uses 20/28 ratio. For 60x60, 42/60 is approx equivalent.
+                const targetSize = 42; 
                 const scale = targetSize / Math.max(cropWidth, cropHeight);
                 
                 const tempCanvas = document.createElement('canvas');
@@ -590,6 +590,11 @@
                 this.numberCanvases = {};
                 this.batches = [];
                 this.currentIdx = 0;
+                this.userName = localStorage.getItem('collector_user_name');
+                if (!this.userName) {
+                    this.userName = prompt("Enter a memorable name for your contributions:") || `User_${Math.floor(Math.random() * 1000)}`;
+                    localStorage.setItem('collector_user_name', this.userName);
+                }
                 this.loadFromStorage();
                 this.init();
             }
@@ -657,7 +662,9 @@
                 NUMBERS.forEach(n => {
                     const data = batchData[n];
                     const sample = {
+                        sample_id: crypto.randomUUID(),
                         batch_id: batchId,
+                        user_name: this.userName,
                         timestamp: timestamp,
                         label: n,
                         gridSize: GRID_SIZE,
@@ -667,7 +674,7 @@
                     samples.push(sample);
                 });
 
-                const batch = { id: batchId, timestamp, numbers: batchData };
+                const batch = { id: batchId, timestamp, userName: this.userName, numbers: batchData };
                 this.batches.push(batch);
                 this.saveToStorage();
                 await this.uploadToServer(samples);
@@ -676,7 +683,7 @@
                 this.currentIdx = 0;
                 this.updateView();
                 this.updateStats();
-                this.log(`Success: Batch saved with 28x28 Normalization & Centering.`, 'success');
+                this.log(`Success: Batch saved with 60x60 Normalization & Centering.`, 'success');
             }
 
             async uploadToServer(samples) {
@@ -711,9 +718,11 @@
             viewBatchFromHistory(index) {
                 const idx = parseInt(index) - 1;
                 const container = document.getElementById('historyPreviewGrid');
+                const info = document.getElementById('historyInfo');
                 if (idx < 0 || idx >= this.batches.length) return;
 
                 const batch = this.batches[idx];
+                info.innerHTML = `<span>Batch #${index} by <strong>${batch.userName || 'Unknown'}</strong> on ${new Date(batch.timestamp).toLocaleString()}</span>`;
                 container.innerHTML = '';
 
                 NUMBERS.forEach(n => {
@@ -743,11 +752,11 @@
                     ...b, 
                     numbers: Object.fromEntries(Object.entries(b.numbers).map(([n, d]) => [n, {...d, vector: compress0(d.vector)}]))
                 }));
-                localStorage.setItem('digit_data_collector_v5', JSON.stringify(compact));
+                localStorage.setItem('digit_data_collector_v6', JSON.stringify(compact));
             }
 
             loadFromStorage() {
-                const stored = localStorage.getItem('digit_data_collector_v5');
+                const stored = localStorage.getItem('digit_data_collector_v6');
                 if (stored) {
                     this.batches = JSON.parse(stored).map(b => ({
                         ...b,
@@ -781,8 +790,16 @@
                 this.batches.forEach(b => {
                     NUMBERS.forEach(n => {
                         const d = b.numbers[n];
-                        const row = { batch_id: b.id, label: n, weight: d.totalWeight };
-                        d.vector.forEach((v, i) => row[`f${i}`] = v);
+                        const row = { 
+                            sample_id: crypto.randomUUID(),
+                            batch_id: b.id, 
+                            user_name: b.userName || this.userName,
+                            timestamp: b.timestamp,
+                            label: n, 
+                            gridSize: GRID_SIZE,
+                            totalWeight: d.totalWeight 
+                        };
+                        d.vector.forEach((v, i) => row[`feature_${i}`] = v);
                         rows.push(row);
                     });
                 });
@@ -791,7 +808,7 @@
                 const blob = new Blob([csv], {type: 'text/csv'});
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = `chinese_digits_mnist_${Date.now()}.csv`;
+                a.download = `chinese_digits_60x60_${Date.now()}.csv`;
                 a.click();
             }
 
@@ -799,14 +816,14 @@
                 const blob = new Blob([JSON.stringify(this.batches)], {type: 'application/json'});
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = `chinese_digits_mnist_${Date.now()}.json`;
+                a.download = `chinese_digits_60x60_${Date.now()}.json`;
                 a.click();
             }
 
             clearHistory() {
                 if (confirm('Clear everything?')) {
                     this.batches = [];
-                    localStorage.removeItem('digit_data_collector_v5');
+                    localStorage.removeItem('digit_data_collector_v6');
                     this.updateStats();
                 }
             }

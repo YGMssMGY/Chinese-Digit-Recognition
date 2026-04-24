@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Admin Dashboard</title>
+    <style>
+        :root {
+            --primary: #b91c1c;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 20px 32px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .btn-delete {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+
+        .status-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Server Data Admin</h1>
+            <div class="header-actions">
+                <a href="/" style="text-decoration: none; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-main); font-weight: 600; font-size: 0.875rem;">Main Interface</a>
+                <button onclick="loadBatches()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; background: white; font-weight: 600; font-size: 0.875rem;">Refresh</button>
+                <button onclick="logout()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--primary); background: white; color: var(--primary); cursor: pointer; font-weight: 600; font-size: 0.875rem;">Logout</button>
+            </div>
+        </header>
+
+        <div id="status" style="margin-bottom: 16px; font-weight: 600; padding-left: 10px;"></div>
+
+        <table id="batchTable">
+            <thead>
+                <tr>
+                    <th>Batch ID</th>
+                    <th>User Name</th>
+                    <th>Timestamp</th>
+                    <th>Samples</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="batchList">
+                <!-- Rows will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let adminPassword = localStorage.getItem('admin_password');
+
+        async function loadBatches() {
+            if (!adminPassword) {
+                adminPassword = prompt("Enter Admin Password:");
+                if (!adminPassword) return;
+                localStorage.setItem('admin_password', adminPassword);
+            }
+
+            const status = document.getElementById('status');
+            status.innerText = "Loading batches...";
+            try {
+                const res = await fetch('/api/batches', {
+                    headers: { 'x-admin-password': adminPassword }
+                });
+
+                if (res.status === 401) {
+                    alert("Unauthorized: Incorrect Password");
+                    adminPassword = null;
+                    localStorage.removeItem('admin_password');
+                    return loadBatches();
+                }
+
+                const batches = await res.json();
+                const list = document.getElementById('batchList');
+                list.innerHTML = batches.length === 0 ? '<tr><td colspan="5" style="text-align:center">No data found in CSV</td></tr>' : '';
+                
+                batches.forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${b.batch_id}</td>
+                        <td style="font-weight: 600">${b.user_name || 'Anonymous'}</td>
+                        <td style="color: #64748b">${new Date(b.timestamp).toLocaleString()}</td>
+                        <td><span class="status-badge">${b.count} digits</span></td>
+                        <td><button class="btn-delete" onclick="deleteBatch('${b.batch_id}')">Delete Batch</button></td>
+                    `;
+                    list.appendChild(tr);
+                });
+                status.innerText = `Found ${batches.length} unique batches.`;
+            } catch (e) {
+                status.innerText = "Error loading data.";
+                console.error(e);
+            }
+        }
+
+        async function deleteBatch(batchId) {
+            if (!confirm(`Are you sure you want to delete batch ${batchId}?`)) return;
+
+            try {
+                const res = await fetch(`/api/batches/${batchId}`, { 
+                    method: 'DELETE',
+                    headers: { 'x-admin-password': adminPassword }
+                });
+
+                if (res.status === 401) {
+                    alert("Unauthorized.");
+                    adminPassword = null;
+                    localStorage.removeItem('admin_password');
+                    return loadBatches();
+                }
+
+                const result = await res.json();
+                alert(result.message);
+                loadBatches();
+            } catch (e) {
+                alert("Failed to delete batch.");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_password');
+            location.reload();
+        }
+
+        loadBatches();
+    </script>
+</body>
+</html>

@@ -2,13 +2,44 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 const app = express();
 const PORT = 4000;
 const CSV_FILE = path.join(__dirname, 'combined_data.csv');
+const ADMIN_PASSWORD = 'admin'; // Change this to your desired password
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Middleware to check admin password
+const checkPassword = (req, res, next) => {
+    const password = req.headers['x-admin-password'];
+    if (password === ADMIN_PASSWORD) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Unauthorized' });
+    }
+};
+
+// Basic CSV Line Parser (handles quoted commas)
+const parseCSVLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) {
+            result.push(cur);
+            cur = '';
+        } else {
+            cur += char;
+        }
+    }
+    result.push(cur);
+    return result;
+};
 
 // Helper to write CSV row
 const appendToCSV = (data) => {
@@ -22,10 +53,11 @@ const appendToCSV = (data) => {
     
     data.forEach(row => {
         const values = Object.values(row).map(val => {
-            if (typeof val === 'string' && val.includes(',')) {
-                return `"${val}"`;
+            const str = String(val);
+            if (str.includes(',') || str.includes('"')) {
+                return `"${str.replace(/"/g, '""')}"`;
             }
-            return val;
+            return str;
         });
         content += values.join(',') + '\n';
     });
@@ -38,25 +70,107 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'Digit Data.html'));
 });
 
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Memory-efficient Batch Aggregation
+app.get('/api/batches', checkPassword, async (req, res) => {
+    if (!fs.existsSync(CSV_FILE)) {
+        return res.json([]);
+    }
+
+    const batches = {};
+    const fileStream = fs.createReadStream(CSV_FILE);
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+
+    let headers = null;
+    let bIdIdx, uNameIdx, tsIdx;
+
+    for await (const line of rl) {
+        if (!headers) {
+            headers = line.split(',');
+            bIdIdx = headers.indexOf('batch_id');
+            uNameIdx = headers.indexOf('user_name');
+            tsIdx = headers.indexOf('timestamp');
+            continue;
+        }
+
+        const cols = parseCSVLine(line);
+        const bId = cols[bIdIdx];
+        if (!bId) continue;
+
+        if (!batches[bId]) {
+            batches[bId] = {
+                batch_id: bId,
+                user_name: cols[uNameIdx],
+                timestamp: cols[tsIdx],
+                count: 0
+            };
+        }
+        batches[bId].count++;
+    }
+
+    res.json(Object.values(batches).sort((a, b) => b.batch_id - a.batch_id));
+});
+
+// Memory-efficient Batch Deletion
+app.delete('/api/batches/:batch_id', checkPassword, async (req, res) => {
+    const targetBatchId = req.params.batch_id;
+    if (!fs.existsSync(CSV_FILE)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+
+    const tempFile = CSV_FILE + '.tmp';
+    const fileStream = fs.createReadStream(CSV_FILE);
+    const writeStream = fs.createWriteStream(tempFile);
+    const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
+
+    let headers = null;
+    let bIdIdx = -1;
+    let deletedCount = 0;
+
+    for await (const line of rl) {
+        if (!headers) {
+            headers = line.split(',');
+            bIdIdx = headers.indexOf('batch_id');
+            writeStream.write(line + '\n');
+            continue;
+        }
+
+        const cols = parseCSVLine(line);
+        if (cols[bIdIdx] !== targetBatchId) {
+            writeStream.write(line + '\n');
+        } else {
+            deletedCount++;
+        }
+    }
+
+    writeStream.end();
+    
+    writeStream.on('finish', () => {
+        fs.renameSync(tempFile, CSV_FILE);
+        console.log(`[${new Date().toLocaleTimeString()}] Deleted batch ${targetBatchId} (${deletedCount} samples)`);
+        res.json({ message: `Deleted ${deletedCount} samples` });
+    });
+});
+
 app.post('/api/submit', (req, res) => {
     try {
         const batchData = req.body;
-        
         if (!Array.isArray(batchData) || batchData.length === 0) {
-            return res.status(400).json({ error: 'Invalid data format. Expected an array of samples.' });
+            return res.status(400).json({ error: 'Invalid data format.' });
         }
-
         appendToCSV(batchData);
-        
-        console.log(`[${new Date().toLocaleTimeString()}] Successfully saved ${batchData.length} samples to ${CSV_FILE}`);
-        res.status(200).json({ message: 'Data saved successfully', count: batchData.length });
+        console.log(`[${new Date().toLocaleTimeString()}] Saved ${batchData.length} samples to ${CSV_FILE}`);
+        res.status(200).json({ message: 'Data saved successfully' });
     } catch (error) {
         console.error('Error saving data:', error);
-        res.status(500).json({ error: 'Failed to save data to server' });
+        res.status(500).json({ error: 'Failed to save data' });
     }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Digit Data Collector Server running on all interfaces at port ${PORT}`);
-    console.log(`Data will be saved to: ${CSV_FILE}`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`CSV: ${CSV_FILE}`);
 });
