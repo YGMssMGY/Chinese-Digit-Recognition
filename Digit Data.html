@@ -299,6 +299,9 @@
         <header>
             <h1>Chinese Digit Collector</h1>
             <p class="subtitle">Custom High-Resolution Collection (60x60 Features)</p>
+            <div id="userDisplay" style="margin-top: 12px; font-size: 0.9rem; color: var(--text-muted); background: rgba(185, 28, 28, 0.05); display: inline-block; padding: 4px 16px; border-radius: 999px; border: 1px solid rgba(185, 28, 28, 0.1);">
+                Collector: <strong id="currentUserName" style="color: var(--primary);">...</strong>
+            </div>
         </header>
         
         <div class="feature-info">
@@ -336,6 +339,7 @@
             <button onclick="saveBatch()" class="btn-success" style="padding: 12px 32px; font-size: 1.1rem;">Submit Full Batch (60x60 Optimized)</button>
             <button onclick="exportToCSV()" class="btn-primary">Export CSV (3600 Features)</button>
             <button onclick="exportAllData()" class="btn-outline">Export JSON</button>
+            <button onclick="changeName()" class="btn-outline">Change Name</button>
             <button onclick="clearHistory()" class="btn-danger-outline">Reset History</button>
         </div>
         
@@ -543,6 +547,11 @@
                 const cropWidth = maxX - minX + 1;
                 const cropHeight = maxY - minY + 1;
                 
+                // DATA QUALITY CHECK: Ignore drawings that are too small (likely noise/dots)
+                if (cropWidth < 5 || cropHeight < 5) {
+                    return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+                }
+
                 // standard MNIST uses 20/28 ratio. For 60x60, 42/60 is approx equivalent.
                 const targetSize = 42; 
                 const scale = targetSize / Math.max(cropWidth, cropHeight);
@@ -608,6 +617,21 @@
                 }
                 this.loadFromStorage();
                 this.init();
+                this.updateUserDisplay();
+            }
+
+            updateUserDisplay() {
+                document.getElementById('currentUserName').innerText = this.userName;
+            }
+
+            changeUserName() {
+                const newName = prompt("Enter a new memorable name for your contributions:", this.userName);
+                if (newName && newName !== this.userName) {
+                    this.userName = newName;
+                    localStorage.setItem('collector_user_name', this.userName);
+                    this.updateUserDisplay();
+                    this.log(`Username changed to: ${this.userName}`, 'success');
+                }
             }
             
             init() {
@@ -763,6 +787,13 @@
             }
 
             saveToStorage() {
+                // CAPACITY FIX: Keep only the most recent 15 batches locally to prevent localStorage full errors.
+                // Note: All data is still preserved on the server.
+                if (this.batches.length > 15) {
+                    this.batches = this.batches.slice(-15);
+                    this.log('Local history pruned to last 15 batches (Server still has everything).', 'info');
+                }
+
                 const compact = this.batches.map(b => ({
                     ...b, 
                     numbers: Object.fromEntries(Object.entries(b.numbers).map(([n, d]) => [n, {...d, vector: compress0(d.vector)}]))
@@ -867,6 +898,7 @@
         function saveBatch() { collector.saveBatch(); }
         function exportToCSV() { collector.exportToCSV(); }
         function exportAllData() { collector.exportToJSON(); }
+        function changeName() { collector.changeUserName(); }
         function clearHistory() { collector.clearHistory(); }
 
         document.addEventListener('keydown', (e) => {
